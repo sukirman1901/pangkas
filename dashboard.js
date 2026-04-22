@@ -16,8 +16,22 @@ function readMemoryData() {
     }
     const raw = fs.readFileSync(memoryPath, 'utf8');
     const data = JSON.parse(raw);
+    
+    // v2.0: Return facts
+    if (data.version === '2.0') {
+      return {
+        hasMemory: true,
+        version: '2.0',
+        lastUpdated: data.lastUpdated || null,
+        facts: data.facts || [],
+        projectRoot: data.projectRoot || projectRoot,
+      };
+    }
+    
+    // v1.x: Return legacy format
     return {
       hasMemory: true,
+      version: '1.0',
       lastUpdated: data.lastUpdated || null,
       recentFocus: data.recentFocus || '',
       sessionSummary: data.sessionSummary || '',
@@ -932,92 +946,28 @@ body {
   <!-- Memory Page -->
   <div class="page" id="page-memory">
     <h1 class="page-title">Session Memory</h1>
-    <p class="page-subtitle">Persistent context across sessions</p>
+    <p class="page-subtitle">Structured facts from previous sessions</p>
 
     <div class="stats-grid">
       <div class="stat-card">
-        <div class="stat-label">Status</div>
-        <div class="stat-value" id="mem-status">-</div>
+        <div class="stat-label">Total Facts</div>
+        <div class="stat-value" id="mem-total">-</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Last Updated</div>
-        <div class="stat-value" id="mem-updated">-</div>
+        <div class="stat-label">Active</div>
+        <div class="stat-value success" id="mem-active">-</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Key Decisions</div>
-        <div class="stat-value" id="mem-decisions">-</div>
+        <div class="stat-label">Bugs</div>
+        <div class="stat-value" id="mem-bugs">-</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Files Modified</div>
-        <div class="stat-value" id="mem-files">-</div>
+        <div class="stat-label">Todos</div>
+        <div class="stat-value" id="mem-todos">-</div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="form-item">
-        <div class="form-label">
-          <div class="form-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-          </div>
-          <div class="form-text">
-            <h4>Current Focus</h4>
-            <p>Active session context</p>
-          </div>
-        </div>
-      </div>
-      <div class="form-value" id="mem-focus">No session memory available.</div>
-
-      <div class="form-item">
-        <div class="form-label">
-          <div class="form-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-          </div>
-          <div class="form-text">
-            <h4>Session Summary</h4>
-            <p>Overview of previous session</p>
-          </div>
-        </div>
-      </div>
-      <div class="form-value" id="mem-summary">No session summary available.</div>
-    </div>
-
-    <div class="card">
-      <div class="form-item">
-        <div class="form-label">
-          <div class="form-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          </div>
-          <div class="form-text">
-            <h4>Key Decisions</h4>
-            <p>Important choices recorded</p>
-          </div>
-        </div>
-      </div>
-      <div id="mem-decisions-list">
-        <div class="empty-state">
-          <p>No key decisions recorded yet.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="form-item">
-        <div class="form-label">
-          <div class="form-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </div>
-          <div class="form-text">
-            <h4>Files Being Modified</h4>
-            <p>Tracked file changes</p>
-          </div>
-        </div>
-      </div>
-      <div id="mem-files-list">
-        <div class="empty-state">
-          <p>No files tracked yet.</p>
-        </div>
-      </div>
-    </div>
+    <div id="mem-facts-container"></div>
   </div>
 
   <!-- Events Page -->
@@ -1193,48 +1143,70 @@ async function loadMemory() {
     const res = await fetch('/api/memory');
     const data = await res.json();
 
-    if (!data.hasMemory) {
-      document.getElementById('mem-status').textContent = 'Inactive';
-      document.getElementById('mem-status').className = 'stat-value';
-      document.getElementById('mem-updated').textContent = 'Never';
+    if (!data.hasMemory || !data.facts) {
+      document.getElementById('mem-total').textContent = '0';
+      document.getElementById('mem-active').textContent = '0';
+      document.getElementById('mem-bugs').textContent = '0';
+      document.getElementById('mem-todos').textContent = '0';
       return;
     }
 
-    document.getElementById('mem-status').textContent = 'Active';
-    document.getElementById('mem-status').className = 'stat-value success';
-    document.getElementById('mem-updated').textContent = formatRelativeTime(data.lastUpdated);
-    document.getElementById('mem-decisions').textContent = (data.keyDecisions || []).length;
-    document.getElementById('mem-files').textContent = (data.filesModified || []).length;
+    const facts = data.facts.filter(f => f.isLatest);
+    document.getElementById('mem-total').textContent = data.facts.length;
+    document.getElementById('mem-active').textContent = facts.length;
+    document.getElementById('mem-bugs').textContent = facts.filter(f => f.type === 'bug').length;
+    document.getElementById('mem-todos').textContent = facts.filter(f => f.type === 'todo').length;
 
-    document.getElementById('mem-focus').textContent = data.recentFocus || 'No focus recorded.';
-    document.getElementById('mem-summary').textContent = data.sessionSummary || 'No summary recorded.';
-
-    // Key decisions
-    const decisionsEl = document.getElementById('mem-decisions-list');
-    const decisions = data.keyDecisions || [];
-    if (decisions.length > 0) {
-      let html = '<div class="mem-list">';
-      for (const d of decisions) {
-        html += '<div class="mem-item"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>' + escapeHtml(d) + '</span></div>';
-      }
-      html += '</div>';
-      decisionsEl.innerHTML = html;
+    // Group facts by type
+    const grouped = {};
+    for (const f of facts) {
+      if (!grouped[f.type]) grouped[f.type] = [];
+      grouped[f.type].push(f);
     }
 
-    // Files modified
-    const filesEl = document.getElementById('mem-files-list');
-    const files = data.filesModified || [];
-    if (files.length > 0) {
-      let html = '<div class="mem-list">';
-      for (const f of files) {
-        html += '<div class="mem-item file-item"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg><span>' + escapeHtml(f) + '</span></div>';
-      }
-      html += '</div>';
-      filesEl.innerHTML = html;
+    let html = '';
+    const typeOrder = ['bug', 'todo', 'decision', 'preference', 'question', 'file'];
+    for (const type of typeOrder) {
+      if (!grouped[type]) continue;
+      const icon = getTypeIcon(type);
+      html += `
+        <div class="card">
+          <div class="form-item">
+            <div class="form-label">
+              <div class="form-icon">${icon}</div>
+              <div class="form-text">
+                <h4>${type.toUpperCase()} (${grouped[type].length})</h4>
+              </div>
+            </div>
+          </div>
+          <div class="mem-list">
+            ${grouped[type].map(f => `
+              <div class="mem-item">
+                <span>${escapeHtml(f.content)}</span>
+                <span style="color:var(--text-subtle);font-size:12px">${f.confidence > 0.8 ? '★' : ''}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
     }
+
+    document.getElementById('mem-facts-container').innerHTML = html;
   } catch (e) {
     console.error('Failed to load memory:', e);
   }
+}
+
+function getTypeIcon(type) {
+  const icons = {
+    bug: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></svg>',
+    todo: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>',
+    decision: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5"/><path d="M8.5 8.5v.01"/><path d="M16 15.5v.01"/><path d="M12 12v.01"/><path d="M11 17v.01"/><path d="M7 14v.01"/></svg>',
+    preference: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+    question: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>',
+    file: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>',
+  };
+  return icons[type] || icons.decision;
 }
 
 function formatRelativeTime(isoString) {
