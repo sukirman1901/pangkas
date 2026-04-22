@@ -37,12 +37,12 @@ export function extractFacts(messages, existingFacts = []) {
   extracted.push(...extractPreferences(text));
   extracted.push(...extractQuestions(text));
   
-  // Deduplicate within same batch (high similarity = same fact)
+  // Deduplicate within same batch (lower threshold for batch dedup)
   const unique = [];
   for (const fact of extracted) {
     const isDuplicate = unique.some(existing => 
       existing.type === fact.type && 
-      similarity(existing.content, fact.content) > 0.85
+      similarity(existing.content, fact.content) > 0.65
     );
     if (!isDuplicate) {
       unique.push(fact);
@@ -61,16 +61,12 @@ function extractTextFromMessages(messages) {
 
 function extractDecisions(text) {
   const facts = [];
-  const patterns = [
-    /(?:kita\s+)?(?:putuskan|memutuskan|decide|pilih|gunakan|pakai|menggunakan)\s+(.{10,150})/gi,
-    /(?:akan\s+)?(?:menggunakan|memakai|pakai)\s+(.{10,150})/gi,
-  ];
+  // Pattern: "kita putuskan/mutuskan/decide/pilih X" (specific decision verbs only)
+  const pattern = /(?:kita\s+)?(?:putuskan|memutuskan|decide|pilih)(?:\s+kita)?\s+(.{10,150})/gi;
   
-  for (const pattern of patterns) {
-    let match;
-    while ((match = pattern.exec(text)) !== null) {
-      facts.push(createFact(FACT_TYPES.DECISION, match[1].trim()));
-    }
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    facts.push(createFact(FACT_TYPES.DECISION, match[1].trim()));
   }
   return facts;
 }
