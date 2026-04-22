@@ -30,4 +30,12 @@ describe('adaptive compressor', () => {
     assert.ok(compressed[1].compressLevel > 0 && compressed[1].compressLevel < 0.5);
     assert.ok(compressed[2].compressLevel > 0.4);
   });
+
+  it('should not aggressively compress string literals', () => {
+    const chunks = [
+      { type: 'string_literal', content: '"hello   world"', score: 0.1, metadata: {} }
+    ];
+    const compressed = compressChunks(chunks, { compressionLevel: 0.9 });
+    assert.ok(compressed[0].content.includes('hello   world'));
+  });
 });
