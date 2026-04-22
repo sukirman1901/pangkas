@@ -1,6 +1,7 @@
 // Helper baca konfigurasi Pangkas
 import fs from "fs";
 import path from "path";
+import os from "os";
 
 // Helper: baca file JSONC (abaikan komentar)
 function readJSONC(filePath) {
@@ -59,6 +60,8 @@ export function getPangkasConfig() {
     enableDashboard: true,
     // Port untuk dashboard (default: 8765)
     dashboardPort: 8765,
+    // Context limit model AI (default: 200000)
+    contextLimit: 200000,
   };
   
   // 1. Cek env
@@ -76,11 +79,23 @@ export function getPangkasConfig() {
     enableBenchmark: process.env.PANGKAS_BENCHMARK === 'true' ? true : undefined,
     enableDashboard: process.env.PANGKAS_DASHBOARD === 'false' ? false : undefined,
     dashboardPort: process.env.PANGKAS_DASHBOARD_PORT ? Number(process.env.PANGKAS_DASHBOARD_PORT) : undefined,
+    contextLimit: process.env.PANGKAS_CONTEXT_LIMIT ? Number(process.env.PANGKAS_CONTEXT_LIMIT) : undefined,
   };
   
-  // 2. Cek file config (pangkas.jsonc di root project)
-  const configPath = path.resolve(process.cwd(), "pangkas.jsonc");
-  const fileConfig = readJSONC(configPath);
+  // 2. Cek file config di beberapa lokasi
+  //    a. plugin dir    b. cwd    c. home dir
+  const pluginDir = path.dirname(new URL(import.meta.url).pathname);
+  const configPaths = [
+    path.resolve(process.cwd(), "pangkas.jsonc"),
+    path.resolve(pluginDir, "pangkas.jsonc"),
+    path.resolve(os.homedir(), ".config/opencode/pangkas.jsonc"),
+  ];
+
+  let fileConfig = {};
+  for (const p of configPaths) {
+    fileConfig = readJSONC(p);
+    if (Object.keys(fileConfig).length > 0) break;
+  }
   
   // 3. Merge (env > file > default)
   const merged = {

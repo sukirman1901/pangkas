@@ -87,7 +87,7 @@ function saveConfig(config) {
   }
 }
 
-function calculateStats(logs) {
+function calculateStats(logs, config) {
   let totalSaved = 0;
   let totalOriginal = 0;
   let totalCompressed = 0;
@@ -110,7 +110,8 @@ function calculateStats(logs) {
     savingsPercent,
     eventCounts,
     totalEvents: logs.length,
-    recentEvents: logs.slice(-30).reverse()
+    recentEvents: logs.slice(-30).reverse(),
+    contextLimit: config?.contextLimit || 200000
   };
 }
 
@@ -698,7 +699,7 @@ body {
         </div>
         <div style="display: flex; justify-content: space-between; margin-top: 8px;">
           <span style="font-size: 12px; color: var(--text-subtle);" id="context-used">0 tokens</span>
-          <span style="font-size: 12px; color: var(--text-subtle);">200,000 limit</span>
+          <span style="font-size: 12px; color: var(--text-subtle);" id="context-limit">200,000 limit</span>
         </div>
         <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-light);">
           <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -982,8 +983,8 @@ async function loadStats() {
   document.getElementById('stat-events').textContent = data.totalEvents.toLocaleString();
   document.getElementById('stat-original').textContent = data.totalOriginal.toLocaleString();
   
-  // Context usage (200K limit)
-  const contextLimit = 200000;
+  // Context usage (dynamic limit from config)
+  const contextLimit = data.contextLimit || 200000;
   const contextUsed = data.totalOriginal;
   const contextPercent = Math.min((contextUsed / contextLimit) * 100, 100);
   const extraSpace = data.totalSaved;
@@ -991,6 +992,7 @@ async function loadStats() {
   document.getElementById('context-percent').textContent = contextPercent.toFixed(1) + '%';
   document.getElementById('context-bar').style.width = contextPercent + '%';
   document.getElementById('context-used').textContent = contextUsed.toLocaleString() + ' tokens';
+  document.getElementById('context-limit').textContent = contextLimit.toLocaleString() + ' limit';
   document.getElementById('extra-space').textContent = '+' + extraSpace.toLocaleString() + ' tokens';
   
   // Event breakdown
@@ -1070,7 +1072,8 @@ export function startDashboard(port = 8765) {
 
     if (req.url === '/api/stats') {
       const logs = readLogs();
-      const stats = calculateStats(logs);
+      const currentConfig = readConfig();
+      const stats = calculateStats(logs, currentConfig);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(stats));
       return;
