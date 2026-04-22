@@ -99,12 +99,50 @@ function persistMemory(projectRoot, ctx) {
   saveFacts(projectRoot, merged);
 }
 
+function setupExitHooks(projectRoot, ctx) {
+  const signals = ['SIGINT', 'SIGTERM', 'SIGUSR2'];
+  let isExiting = false;
+  
+  const handleExit = (signal) => {
+    if (isExiting) return;
+    isExiting = true;
+    
+    try {
+      persistMemory(projectRoot, ctx);
+    } catch (e) {
+      // Silent fail during exit
+    }
+    
+    if (signal !== 'uncaughtException') {
+      process.exit(0);
+    }
+  };
+  
+  for (const signal of signals) {
+    process.on(signal, () => handleExit(signal));
+  }
+  
+  // Handle uncaught exceptions
+  process.on('uncaughtException', (err) => {
+    try {
+      persistMemory(projectRoot, ctx);
+    } catch (e) {
+      // Silent fail
+    }
+    console.error('[Pangkas] Uncaught exception:', err);
+    process.exit(1);
+  });
+}
+
 // Plugin utama Pangkas v3
 export const PangkasPlugin = async (ctx) => {
   const config = getPangkasConfig();
   
   // Determine project root for memory scoping
   const projectRoot = findProjectRoot();
+  
+  // Setup exit hooks to ensure memory is saved on shutdown
+  setupExitHooks(projectRoot, ctx);
   
   // Load and inject session memory if enabled
   if (config.enableSessionMemory !== false) {
