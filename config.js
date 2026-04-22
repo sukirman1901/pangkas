@@ -58,10 +58,20 @@ export function getPangkasConfig() {
     // --- Session Memory ---
     // true = simpan/load session memory antar restart
     enableSessionMemory: true,
-    // Maksimal karakter summary yang di-inject ke prompt
-    maxMemoryInjectLength: 500,
+    // true = gunakan fact extraction (v2.0) instead of flat summaries
+    enableFactExtraction: true,
+    // Maksimal jumlah facts yang di-inject ke prompt
+    maxFactsToInject: 7,
+    // Minimal confidence score untuk fact (0.0 - 1.0)
+    minFactConfidence: 0.6,
     // true = tampilkan indicator [Loaded context...]
     memoryInjectIndicator: true,
+    // Urutan prioritas fact types (pertama = paling penting)
+    factPriorityOrder: ['bug', 'todo', 'decision', 'preference', 'question', 'file', 'done'],
+    // Archive facts 'done' setelah N sessions
+    archiveDoneAfterSessions: 3,
+    // Maksimal karakter per fact content
+    maxFactContentLength: 150,
 
     // --- Dashboard ---
     // true = auto-start web dashboard di localhost
@@ -89,6 +99,8 @@ export function getPangkasConfig() {
     dashboardPort: process.env.PANGKAS_DASHBOARD_PORT ? Number(process.env.PANGKAS_DASHBOARD_PORT) : undefined,
     contextLimit: process.env.PANGKAS_CONTEXT_LIMIT ? Number(process.env.PANGKAS_CONTEXT_LIMIT) : undefined,
     enableSessionMemory: process.env.PANGKAS_SESSION_MEMORY === 'false' ? false : undefined,
+    enableFactExtraction: process.env.PANGKAS_FACTS === 'false' ? false : undefined,
+    maxFactsToInject: process.env.PANGKAS_MAX_FACTS ? Number(process.env.PANGKAS_MAX_FACTS) : undefined,
     maxMemoryInjectLength: process.env.PANGKAS_MEMORY_LENGTH ? Number(process.env.PANGKAS_MEMORY_LENGTH) : undefined,
   };
   
