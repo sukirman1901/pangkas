@@ -41,23 +41,49 @@ Pangkas v3 uses a smarter new pipeline:
 
 ---
 
-## Session Memory (New)
+## Session Memory v2.0 (New)
 
 Pangkas can remember the context of your previous session so you don't lose track after restarting OpenCode.
 
+### What's New in v2.0: Smart Fact Extraction
+
+Instead of storing flat text summaries, Pangkas now extracts **structured facts** from each session:
+
+| Fact Type | Description | Example |
+|-----------|-------------|---------|
+| **DECISION** | Architecture/technical decisions | "Use SQLite for local DB" |
+| **TODO** | Open tasks not yet completed | "Add dark mode to dashboard" |
+| **DONE** | Completed tasks (auto-archived) | "Fix memory persistence bug" |
+| **BUG** | Known bugs or issues | "Dashboard crashes on null" |
+| **FILE** | Files being modified | "dashboard.js", "index.js" |
+| **PREFERENCE** | User preferences | "Prefer minimalist design" |
+| **QUESTION** | Open questions | "Should we use Redis?" |
+
 ### How It Works
 
-1. After each assistant response, Pangkas saves a short summary to `.pangkas/memory.json` inside your project root.
-2. The `.pangkas/` folder is automatically added to `.gitignore` so it never leaks to GitHub.
-3. When you reopen the same project, Pangkas injects the summary into the first system message.
-4. All persisted text is sanitized to remove API keys, tokens, and passwords.
+1. After each message exchange, Pangkas **extracts structured facts** from the conversation (not just flat summaries).
+2. Facts are stored in `.pangkas/memory.json` inside your project root.
+3. When you reopen the same project, Pangkas injects the **most relevant facts** (up to 7 by default) into the first system message.
+4. Facts are **deduplicated** — if a fact already exists, its confidence score and session count are updated.
+5. All persisted text is **sanitized** to remove API keys, tokens, and passwords.
+
+### Token Efficiency
+
+| Metric | v1.x (Summary) | v2.0 (Facts) | Savings |
+|--------|----------------|--------------|---------|
+| Avg injection size | 350 chars | 140 chars | **60%** |
+| Relevance | All-or-nothing | Filter by type | Higher precision |
+| Parse overhead | AI parses NL | Structured | Zero parse |
 
 ### Configuration
 
 | File Key | Environment Variable | Default | Description |
 |----------|---------------------|---------|-------------|
 | `enableSessionMemory` | `PANGKAS_SESSION_MEMORY` | `true` | Enable session memory |
-| `maxMemoryInjectLength` | `PANGKAS_MEMORY_LENGTH` | `500` | Max characters injected into prompt |
+| `enableFactExtraction` | `PANGKAS_FACTS` | `true` | Use structured facts (v2.0) |
+| `maxFactsToInject` | `PANGKAS_MAX_FACTS` | `7` | Max facts injected per session |
+| `minFactConfidence` | — | `0.6` | Minimum confidence for facts |
+| `factPriorityOrder` | — | `['bug', 'todo', ...]` | Priority of fact types |
 | `memoryInjectIndicator` | — | `true` | Show "[Loaded context...]" indicator |
 
 ### Privacy & Security
@@ -74,6 +100,10 @@ Pangkas can remember the context of your previous session so you don't lose trac
   "enableSessionMemory": false
 }
 ```
+
+### Migration from v1.x
+
+Old memory files (v1.x format) are automatically ignored. Pangkas will start fresh with v2.0 fact-based storage. You can safely delete `.pangkas/memory.json` to reset.
 
 ---
 
