@@ -1,4 +1,4 @@
-// Pangkas Plugin v2 - Hemat Token AI untuk OpenCode
+// Pangkas Plugin v3 - Hemat Token AI untuk OpenCode
 // Prinsip: Ringkas tapi bermakna (seperti Superpowers)
 // Tidak menghapus context secara brutal, tapi summarize dan compress smart
 
@@ -7,6 +7,7 @@ import { compressPrompt } from "./compressor.js";
 import { manageHistory } from "./history-manager.js";
 import { logStats } from "./logger.js";
 import { getPangkasConfig } from "./config.js";
+import { createPipeline, reconstructText } from "./pipeline/index.js";
 
 // Estimasi token sederhana (1 token ~ 4 karakter rata-rata)
 function estimateTokens(text) {
@@ -24,8 +25,8 @@ function compressStrings(arr, config) {
   });
 }
 
-// Helper untuk compress parts dalam sebuah message
-function compressParts(parts, config) {
+// Helper untuk compress parts dalam sebuah message (legacy mode)
+function compressPartsLegacy(parts, config) {
   if (!parts || !Array.isArray(parts)) return parts;
   
   return parts.map(part => {
@@ -46,6 +47,28 @@ function compressParts(parts, config) {
   });
 }
 
+// Helper untuk compress parts menggunakan pipeline baru
+function compressPartsPipeline(parts, pipeline) {
+  if (!parts || !Array.isArray(parts)) return parts;
+  
+  return parts.map(part => {
+    if (!part) return part;
+    
+    if (typeof part.text === 'string') {
+      const chunks = pipeline.run(part.text);
+      const compressed = reconstructText(chunks);
+      return { ...part, text: compressed };
+    }
+    
+    if (typeof part === 'string') {
+      const chunks = pipeline.run(part);
+      return reconstructText(chunks);
+    }
+    
+    return part;
+  });
+}
+
 // Helper untuk extract text dari parts
 function extractText(parts) {
   if (!parts || !Array.isArray(parts)) return '';
@@ -56,9 +79,12 @@ function extractText(parts) {
   }).join('');
 }
 
-// Plugin utama Pangkas v2
+// Plugin utama Pangkas v3
 export const PangkasPlugin = async (ctx) => {
   const config = getPangkasConfig();
+  
+  // Create pipeline if v3 mode is enabled
+  const pipeline = config.usePipeline ? createPipeline(config) : null;
 
   return {
     // Hook 1: Transform system prompts
@@ -70,7 +96,17 @@ export const PangkasPlugin = async (ctx) => {
       const originalText = output.system.join('\n');
       const originalTokens = estimateTokens(originalText);
       
-      output.system = compressStrings(output.system, config);
+      if (pipeline) {
+        // v3: use pipeline
+        output.system = output.system.map(str => {
+          if (typeof str !== 'string') return str;
+          const chunks = pipeline.run(str);
+          return reconstructText(chunks);
+        });
+      } else {
+        // Legacy mode
+        output.system = compressStrings(output.system, config);
+      }
       
       const compressedText = output.system.join('\n');
       const compressedTokens = estimateTokens(compressedText);
@@ -135,7 +171,11 @@ export const PangkasPlugin = async (ctx) => {
         
         // Compress parts
         if (msg.parts && Array.isArray(msg.parts)) {
-          msg.parts = compressParts(msg.parts, config);
+          if (pipeline) {
+            msg.parts = compressPartsPipeline(msg.parts, pipeline);
+          } else {
+            msg.parts = compressPartsLegacy(msg.parts, config);
+          }
         }
         
         // Hitung compressed tokens
@@ -166,7 +206,11 @@ export const PangkasPlugin = async (ctx) => {
       
       const originalParts = extractText(output.parts);
       
-      output.parts = compressParts(output.parts, config);
+      if (pipeline) {
+        output.parts = compressPartsPipeline(output.parts, pipeline);
+      } else {
+        output.parts = compressPartsLegacy(output.parts, config);
+      }
       
       const compressedParts = extractText(output.parts);
       
