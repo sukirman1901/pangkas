@@ -1,6 +1,7 @@
-function splitLineComments(text) {
+function splitLineComments(text, startLine = 1) {
   const result = [];
   const lines = text.split('\n');
+  let lineNum = startLine;
 
   for (const line of lines) {
     // Find // comment (but not in URL like http://)
@@ -34,16 +35,17 @@ function splitLineComments(text) {
       const codePart = line.slice(0, idx);
       const commentPart = line.slice(idx);
       if (codePart.trim()) {
-        result.push({ type: 'code', content: codePart });
+        result.push({ type: 'code', content: codePart, lineStart: lineNum, lineEnd: lineNum });
       }
       if (commentPart.trim()) {
-        result.push({ type: 'comment', content: commentPart });
+        result.push({ type: 'comment', content: commentPart, lineStart: lineNum, lineEnd: lineNum });
       }
     } else {
       if (line.trim()) {
-        result.push({ type: 'code', content: line });
+        result.push({ type: 'code', content: line, lineStart: lineNum, lineEnd: lineNum });
       }
     }
+    lineNum++;
   }
 
   return result;
@@ -57,9 +59,14 @@ export function parseChunks(text) {
   let inString = false;
   let stringChar = '';
   let escaped = false;
+  let currentLine = 1;
 
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
+
+    if (char === '\n') {
+      currentLine++;
+    }
 
     if (inString) {
       current += char;
@@ -73,12 +80,14 @@ export function parseChunks(text) {
       }
       if (char === stringChar) {
         inString = false;
+        const newlines = (current.match(/\n/g) || []).length;
+        const startLine = currentLine - newlines;
         rawChunks.push({
           type: 'string_literal',
           content: current,
           score: 0.0,
           compressLevel: 0.0,
-          metadata: { lineStart: 0, lineEnd: 0 }
+          metadata: { lineStart: startLine, lineEnd: currentLine }
         });
         current = '';
       }
@@ -87,12 +96,14 @@ export function parseChunks(text) {
 
     if (char === '"' || char === "'" || char === '`') {
       if (current.trim()) {
+        const newlines = (current.match(/\n/g) || []).length;
+        const startLine = currentLine - newlines;
         rawChunks.push({
           type: 'code',
           content: current,
           score: 0.0,
           compressLevel: 0.0,
-          metadata: { lineStart: 0, lineEnd: 0 }
+          metadata: { lineStart: startLine, lineEnd: currentLine }
         });
       }
       current = char;
@@ -105,12 +116,14 @@ export function parseChunks(text) {
   }
 
   if (current.trim()) {
+    const newlines = (current.match(/\n/g) || []).length;
+    const startLine = currentLine - newlines;
     rawChunks.push({
       type: 'code',
       content: current,
       score: 0.0,
       compressLevel: 0.0,
-      metadata: { lineStart: 0, lineEnd: 0 }
+      metadata: { lineStart: startLine, lineEnd: currentLine }
     });
   }
 
@@ -118,12 +131,13 @@ export function parseChunks(text) {
   const finalChunks = [];
   for (const chunk of rawChunks) {
     if (chunk.type === 'code') {
-      const split = splitLineComments(chunk.content);
+      const split = splitLineComments(chunk.content, chunk.metadata.lineStart);
       for (const part of split) {
         finalChunks.push({
           ...chunk,
           type: part.type,
-          content: part.content
+          content: part.content,
+          metadata: { lineStart: part.lineStart, lineEnd: part.lineEnd }
         });
       }
     } else {

@@ -50,4 +50,22 @@ describe('chunker', () => {
     const sep = chunks.find(c => c.type === 'separator');
     assert.ok(sep);
   });
+
+  it('should track line numbers', () => {
+    const input = 'line1\nline2\nline3';
+    const chunks = parseChunks(input);
+    assert.strictEqual(chunks[0].metadata.lineStart, 1);
+    assert.strictEqual(chunks[0].metadata.lineEnd, 1);
+    assert.strictEqual(chunks[1].metadata.lineStart, 2);
+    assert.strictEqual(chunks[1].metadata.lineEnd, 2);
+  });
+
+  it('should track multi-line string literal line numbers', () => {
+    const input = 'const x = "line1\nline2\nline3";';
+    const chunks = parseChunks(input);
+    const stringLit = chunks.find(c => c.type === 'string_literal');
+    assert.ok(stringLit);
+    assert.strictEqual(stringLit.metadata.lineStart, 1);
+    assert.strictEqual(stringLit.metadata.lineEnd, 3);
+  });
 });
