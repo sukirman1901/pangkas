@@ -1030,7 +1030,21 @@ setInterval(loadStats, 2000);
 </html>`;
 
 export function startDashboard(port = 8765) {
-  if (server) return;
+  // If server exists but is closed, reset it so we can create a new one
+  if (server) {
+    // Check if server is still listening by checking its internal state
+    // A closed server has no address
+    try {
+      if (server.listening) {
+        console.log(`[Pangkas] Dashboard already running on port ${port}`);
+        return;
+      }
+    } catch {
+      // If we can't check, assume it's dead and recreate
+    }
+    // Server exists but not listening, reset it
+    server = null;
+  }
 
   server = http.createServer((req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -1096,7 +1110,11 @@ export function startDashboard(port = 8765) {
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       console.log(`[Pangkas] Dashboard port ${port} already in use`);
+    } else {
+      console.log(`[Pangkas] Dashboard error on port ${port}:`, err.message);
     }
+    // Reset server so we can try again later
+    server = null;
   });
 }
 

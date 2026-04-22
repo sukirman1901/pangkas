@@ -43,24 +43,34 @@ Pangkas v3 menggunakan pipeline baru yang lebih pintar:
 
 ## Instalasi
 
-1. **Clone atau copy** plugin ini ke folder `.pangkas/` di dalam workspace OpenCode kamu, atau ke lokasi yang kamu inginkan.
+1. **Clone atau copy** plugin ini ke folder plugins OpenCode:
 
-2. **Daftarkan plugin** di konfigurasi OpenCode (`mcpServers` atau setup plugin lokal):
+   ```bash
+   # Clone ke folder plugins OpenCode
+   git clone https://github.com/sukirman1901/pangkas.git ~/.config/opencode/plugins/pangkas
+   ```
+
+2. **Buat file wrapper** `pangkas.js` di folder plugins (agar OpenCode bisa load plugin):
+
+   ```bash
+   cd ~/.config/opencode/plugins/
+   ln -s pangkas/pangkas.js pangkas.js
+   ```
+
+   Atau copy file wrapper:
+   ```bash
+   cp ~/.config/opencode/plugins/pangkas/pangkas.js ~/.config/opencode/plugins/pangkas.js
+   ```
+
+3. **Daftarkan plugin** di konfigurasi OpenCode (`~/.config/opencode/config.json`):
 
    ```json
    {
-     "mcpServers": {
-       "pangkas": {
-         "command": "node",
-         "args": ["/path/to/pangkas/index.js"]
-       }
-     }
+     "plugin": ["pangkas"]
    }
    ```
 
-   Atau sesuaikan dengan cara plugin OpenCode yang kamu pakai.
-
-3. **(Opsional) Buat konfigurasi** `pangkas.jsonc` di root project:
+4. **(Opsional) Buat konfigurasi** `pangkas.jsonc` di root project:
 
    ```jsonc
    {
@@ -117,6 +127,7 @@ Pangkas bisa dikonfigurasi melalui **file** (`pangkas.jsonc`) atau **environment
 
 ```
 pangkas/
+├── pangkas.js            # Plugin wrapper (entry point untuk OpenCode)
 ├── index.js              # Plugin entry point & hooks
 ├── config.js             # Configuration loader (env + file)
 ├── logger.js             # Statistics logging

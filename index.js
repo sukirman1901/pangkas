@@ -89,10 +89,13 @@ export const PangkasPlugin = async (ctx) => {
   // Auto-start dashboard if enabled (default: true)
   if (config.enableDashboard !== false) {
     try {
+      console.log(`[Pangkas] Starting dashboard on port ${config.dashboardPort || 8765}...`);
       startDashboard(config.dashboardPort || 8765);
     } catch (err) {
       console.log("[Pangkas] Dashboard failed to start:", err.message);
     }
+  } else {
+    console.log("[Pangkas] Dashboard is disabled in config");
   }
   
   // Create pipeline if v3 mode is enabled
