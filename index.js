@@ -7,7 +7,8 @@ import { getPangkasConfig } from "./config.js";
 import { createPipeline, reconstructText } from "./pipeline/index.js";
 import { startDashboard } from "./dashboard.js";
 import { findProjectRoot } from './project-root.js';
-import { loadMemory, updateMemory } from './memory.js';
+import { loadMemory, saveFacts, getFactsForInjection } from './memory.js';
+import { extractFacts, mergeFacts } from './fact-extractor.js';
 import { sanitizeObject } from './sanitize.js';
 
 // Legacy imports (for backward compatibility when usePipeline: false)
@@ -85,24 +86,17 @@ function extractText(parts) {
   }).join('');
 }
 
-function summarizeSession(messages) {
-  if (!messages || messages.length === 0) return '';
-  const lastUser = messages.slice().reverse().find(m => m.role === 'user');
-  const text = lastUser && lastUser.parts
-    ? lastUser.parts.map(p => (typeof p === 'string' ? p : p.text || '')).join(' ')
-    : '';
-  return text.slice(0, 300);
-}
-
 function persistMemory(projectRoot, ctx) {
-  const summary = summarizeSession(ctx.messages);
-  if (!summary) return;
-  const patch = sanitizeObject({
-    sessionSummary: summary,
-    recentFocus: summary,
-    filesModified: [],
-  });
-  updateMemory(projectRoot, patch);
+  const messages = ctx.messages || [];
+  const extracted = extractFacts(messages);
+  
+  if (extracted.length === 0) return;
+  
+  const memory = loadMemory(projectRoot);
+  const existing = memory?.facts || [];
+  const merged = mergeFacts(existing, extracted);
+  
+  saveFacts(projectRoot, merged);
 }
 
 // Plugin utama Pangkas v3
@@ -114,18 +108,18 @@ export const PangkasPlugin = async (ctx) => {
   
   // Load and inject session memory if enabled
   if (config.enableSessionMemory !== false) {
-    const memory = loadMemory(projectRoot);
-    if (memory && memory.sessionSummary && ctx.messages && Array.isArray(ctx.messages)) {
-      const rawSummary = memory.sessionSummary;
-      const clamped = rawSummary.length > config.maxMemoryInjectLength
-        ? rawSummary.slice(0, config.maxMemoryInjectLength) + '...'
-        : rawSummary;
+    const factsText = getFactsForInjection(projectRoot, {
+      limit: config.maxFactsToInject || 7,
+      excludeDone: true,
+    });
+    
+    if (factsText && ctx.messages && Array.isArray(ctx.messages)) {
       const indicator = config.memoryInjectIndicator
-        ? '[Loaded context from previous session]\n'
+        ? '[Loaded context from previous sessions]\n'
         : '';
       const contextMsg = {
         role: 'system',
-        content: `${indicator}${clamped}`,
+        content: `${indicator}${factsText}`,
         _pangkas_injected_memory: true,
       };
       const firstSystemIdx = ctx.messages.findIndex(m => m.role === 'system');
