@@ -1,7 +1,0 @@
-{
-  // Konfigurasi utama plugin Pangkas
-  "similarityThreshold": 0.95,
-  "compactionThreshold": 0.8,
-  "maxMemories": 5,
-  "compressionLevel": 0.6
-}
