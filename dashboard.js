@@ -674,7 +674,7 @@ body {
       <span>Pipeline</span>
     </button>
     <button class="nav-tab" data-page="memory" onclick="showPage('memory')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5v2a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2V7a5 5 0 0 0-5-5Z"/><circle cx="12" cy="15" r="1"/><path d="M8 11V7a4 4 0 1 1 8 0v4"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18a4 4 0 1 0 3.97-4.77 4 4 0 0 0 .557-6.588A4 4 0 0 0 12 5Z"/><path d="m15.5 6.5-1.5 1.5"/><path d="m8.5 6.5 1.5 1.5"/><path d="M12 12v3"/></svg>
       <span>Memory</span>
     </button>
     <button class="nav-tab" data-page="events" onclick="showPage('events')">
