@@ -35,4 +35,19 @@ describe('chunker', () => {
     assert.strictEqual(chunks[0].type, 'code');
     assert.strictEqual(chunks[1].type, 'comment');
   });
+
+  it('should detect instruction markers', () => {
+    const input = '1. **Important**: Jangan ubah ini\n2. Lanjutkan';
+    const chunks = parseChunks(input);
+    const instruction = chunks.find(c => c.type === 'instruction');
+    assert.ok(instruction);
+    assert.ok(instruction.content.includes('Jangan ubah'));
+  });
+
+  it('should detect separator', () => {
+    const input = 'foo\n---\nbar';
+    const chunks = parseChunks(input);
+    const sep = chunks.find(c => c.type === 'separator');
+    assert.ok(sep);
+  });
 });

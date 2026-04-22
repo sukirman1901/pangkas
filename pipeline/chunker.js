@@ -131,5 +131,28 @@ export function parseChunks(text) {
     }
   }
 
-  return finalChunks;
+  // Classify code chunks as instruction or separator
+  return finalChunks.map(chunk => classifyChunk(chunk));
+}
+
+function classifyChunk(chunk) {
+  if (chunk.type !== 'code') return chunk;
+
+  const trimmed = chunk.content.trim();
+
+  // Separator: ---, ===, ___, etc.
+  if (/^[-=_*]{3,}$/.test(trimmed)) {
+    return { ...chunk, type: 'separator' };
+  }
+
+  // Instruction markers
+  if (
+    /^\s*\d+\.\s/.test(trimmed) ||                    // Numbered list
+    /^\s*[*-]\s/.test(trimmed) ||                     // Bullet list
+    /^(IMPORTANT|NOTE|WARNING|CRITICAL|ALWAYS|NEVER|TODO|FIXME):/i.test(trimmed)
+  ) {
+    return { ...chunk, type: 'instruction' };
+  }
+
+  return chunk;
 }
