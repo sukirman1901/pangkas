@@ -251,12 +251,9 @@ export const PangkasPlugin = async (ctx) => {
       
       output.messages = messages;
       
-      // Persist session memory if assistant message exists
+      // Persist session memory - save on every message transform, not just assistant
       if (config.enableSessionMemory !== false) {
-        const lastMsg = messages[messages.length - 1];
-        if (lastMsg && lastMsg.role === 'assistant') {
-          persistMemory(projectRoot, ctx);
-        }
+        persistMemory(projectRoot, ctx);
       }
       
       const saved = totalOriginalTokens - totalCompressedTokens;
