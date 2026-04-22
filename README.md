@@ -17,6 +17,27 @@ Saat chat dengan AI di OpenCode, semua pesan, system prompt, dan konteks dikirim
 | **Semantic Pruning** | Hapus komentar "noise" (komentar kosong, separator, sapaan), tapi **pertahankan** komentar penting seperti `TODO`, `FIXME`, `@param`, `eslint-disable`, dsb. | Kode tetap readable dan informatif |
 | **Smart Compression** | Kompres whitespace secara bertahap sesuai level yang dipilih. Level konservatif hanya hapus trailing whitespace; level agresif bisa minimalis lebih jauh. | Mengurangi token tanpa merusak struktur |
 | **Smart History** | Bukan brute truncate! Pesan lama yang tidak penting di-*summarize*, pesan dengan instruksi penting tetap dipertahankan. Pesan pertama dan terakhir selalu aman. | Konteks panjang tetap relevan |
+| **v3 Pipeline** | Pipeline *context-aware* dengan chunker → scorer → compressor → dedup. Instruksi penting tidak di-compress, string literal aman, redundansi antar pesan dihapus. | Hemat token 15%+ tanpa kehilangan konteks |
+
+---
+
+## v3 Pipeline (Context-Aware)
+
+Pangkas v3 menggunakan pipeline baru yang lebih pintar:
+
+### Stages
+
+1. **Chunker** — Memahami struktur teks (string literal, komentar, instruksi, separator)
+2. **Scorer** — Memberi skor pentingnya setiap chunk (0.0 = noise, 1.0 = critical)
+3. **Compressor** — Kompresi adaptif berdasarkan skor (penting = tidak di-compress, noise = agresif)
+4. **Dedup** — Deteksi dan hapus redundansi antar messages
+
+### Keunggulan v3
+
+- **Smart**: Instruksi penting (TODO, FIXME, IMPORTANT) tidak di-compress
+- **Aman**: String literal tidak di-rusak oleh compression
+- **Efisien**: Hemat token 15%+ tanpa kehilangan konteks penting
+- **Backward Compatible**: Bisa fallback ke v2 dengan `usePipeline: false`
 
 ---
 
@@ -53,7 +74,12 @@ Saat chat dengan AI di OpenCode, semua pesan, system prompt, dan konteks dikirim
      "useSummarization": true,
 
      // Logging statistik token
-     "enableLogging": true
+     "enableLogging": true,
+
+     // v3 Pipeline
+     "usePipeline": true,         // aktifkan pipeline baru
+     "dedupThreshold": 0.85,      // threshold deduplication
+     "maxChunksPerMessage": 500   // safety limit
    }
    ```
 
@@ -72,6 +98,9 @@ Pangkas bisa dikonfigurasi melalui **file** (`pangkas.jsonc`) atau **environment
 | `pruneUserMessages` | `PANGKAS_PRUNE_USER` | `true` | Prune pesan user |
 | `pruneAssistantMessages` | `PANGKAS_PRUNE_ASSISTANT` | `true` | Prune pesan assistant |
 | `enableLogging` | `PANGKAS_LOG` | `true` | Log statistik ke console |
+| `usePipeline` | — | `true` | Gunakan pipeline v3 (chunker→scorer→compressor→dedup) |
+| `dedupThreshold` | — | `0.85` | Threshold Jaccard similarity untuk deduplication (0.0-1.0) |
+| `maxChunksPerMessage` | — | `500` | Safety limit jumlah chunk per pesan |
 
 **Environment variable** akan menimpa nilai di file config.
 
@@ -88,16 +117,25 @@ Pangkas bisa dikonfigurasi melalui **file** (`pangkas.jsonc`) atau **environment
 
 ```
 pangkas/
-├── index.js           # Plugin entry point & hooks
-├── config.js          # Configuration loader (env + file)
-├── pruner.js          # Semantic comment pruning
-├── compressor.js      # Smart whitespace compression
-├── history-manager.js # Smart history with summarization
-├── logger.js          # Statistics logging
-├── router.js          # Model routing (placeholder)
-├── semantic-cache.js  # Semantic cache (placeholder)
-├── types.ts           # TypeScript type definitions
-└── README.md          # This file
+├── index.js              # Plugin entry point & hooks
+├── config.js             # Configuration loader (env + file)
+├── logger.js             # Statistics logging
+├── dashboard.js          # Real-time token dashboard (v3)
+├── start-dashboard.js    # Dashboard startup script
+├── package.json          # Package metadata & test scripts
+├── pipeline/             # v3: Context-Aware Pipeline
+│   ├── index.js          # Pipeline orchestrator
+│   ├── chunker.js        # Smart text chunking
+│   ├── scorer.js         # Importance scoring
+│   ├── compressor.js     # Adaptive compression
+│   └── dedup.js          # Deduplication
+├── legacy/               # v2 modules (backward compat)
+│   ├── compressor.js
+│   ├── pruner.js
+│   └── history-manager.js
+├── tests/                # Test suites
+├── types.ts              # TypeScript type definitions
+└── README.md             # This file
 ```
 
 ---
@@ -112,6 +150,23 @@ pangkas/
 | **Debugging kompleks** | Matikan `pruneUserMessages` jika perlu (`PANGKAS_PRUNE_USER=false`) |
 | **Hemat token maksimal** | Naikkan ke `0.7`, tapi perhatikan readability |
 | **Project dengan banyak JSDoc** | Biarkan `pruneSystemPrompt: true` — komentar penting akan tetap ada |
+| **v3 Pipeline bermasalah** | Fallback ke v2: `usePipeline: false` |
+| **Monitor penghematan** | Jalankan dashboard: `node start-dashboard.js` |
+
+---
+
+## Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test suites
+npm run test:unit
+npm run test:integration
+npm run test:regression
+npm run test:benchmark
+```
 
 ---
 

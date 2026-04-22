@@ -43,6 +43,22 @@ export function getPangkasConfig() {
     // --- Logging ---
     // true = log ke console dan file
     enableLogging: true,
+    
+    // --- v3 Pipeline Settings ---
+    // true = gunakan pipeline baru (chunker → scorer → compressor → dedup)
+    usePipeline: true,
+    // Threshold Jaccard similarity untuk deduplication (0.0 - 1.0)
+    dedupThreshold: 0.85,
+    // Batas maksimal chunks per message (safety limit)
+    maxChunksPerMessage: 500,
+    // true = aktifkan mode benchmark (hitung token savings)
+    enableBenchmark: false,
+    
+    // --- Dashboard ---
+    // true = auto-start web dashboard di localhost
+    enableDashboard: true,
+    // Port untuk dashboard (default: 8765)
+    dashboardPort: 8765,
   };
   
   // 1. Cek env
@@ -54,6 +70,12 @@ export function getPangkasConfig() {
     maxHistoryMessages: process.env.PANGKAS_MAX_HISTORY ? Number(process.env.PANGKAS_MAX_HISTORY) : undefined,
     useSummarization: process.env.PANGKAS_SUMMARIZE === 'false' ? false : undefined,
     enableLogging: process.env.PANGKAS_LOG === 'false' ? false : undefined,
+    usePipeline: process.env.PANGKAS_USE_PIPELINE === 'false' ? false : undefined,
+    dedupThreshold: process.env.PANGKAS_DEDUP_THRESHOLD ? Number(process.env.PANGKAS_DEDUP_THRESHOLD) : undefined,
+    maxChunksPerMessage: process.env.PANGKAS_MAX_CHUNKS ? Number(process.env.PANGKAS_MAX_CHUNKS) : undefined,
+    enableBenchmark: process.env.PANGKAS_BENCHMARK === 'true' ? true : undefined,
+    enableDashboard: process.env.PANGKAS_DASHBOARD === 'false' ? false : undefined,
+    dashboardPort: process.env.PANGKAS_DASHBOARD_PORT ? Number(process.env.PANGKAS_DASHBOARD_PORT) : undefined,
   };
   
   // 2. Cek file config (pangkas.jsonc di root project)
@@ -74,6 +96,14 @@ export function getPangkasConfig() {
   
   // 5. Clamp compression level
   merged.compressionLevel = Math.max(0, Math.min(1, merged.compressionLevel));
+  
+  // 6. Clamp v3 pipeline settings
+  if (merged.dedupThreshold !== undefined) {
+    merged.dedupThreshold = Math.max(0, Math.min(1, merged.dedupThreshold));
+  }
+  if (merged.maxChunksPerMessage !== undefined) {
+    merged.maxChunksPerMessage = Math.max(10, Math.min(10000, merged.maxChunksPerMessage));
+  }
   
   return merged;
 }

@@ -1,12 +1,16 @@
-// Pangkas Plugin v2 - Hemat Token AI untuk OpenCode
+// Pangkas Plugin v3 - Hemat Token AI untuk OpenCode
 // Prinsip: Ringkas tapi bermakna (seperti Superpowers)
 // Tidak menghapus context secara brutal, tapi summarize dan compress smart
 
-import { pruneContext } from "./pruner.js";
-import { compressPrompt } from "./compressor.js";
-import { manageHistory } from "./history-manager.js";
 import { logStats } from "./logger.js";
 import { getPangkasConfig } from "./config.js";
+import { createPipeline, reconstructText } from "./pipeline/index.js";
+import { startDashboard } from "./dashboard.js";
+
+// Legacy imports (for backward compatibility when usePipeline: false)
+import { pruneContext as legacyPrune } from "./legacy/pruner.js";
+import { compressPrompt as legacyCompress } from "./legacy/compressor.js";
+import { manageHistory as legacyManageHistory } from "./legacy/history-manager.js";
 
 // Estimasi token sederhana (1 token ~ 4 karakter rata-rata)
 function estimateTokens(text) {
@@ -14,32 +18,54 @@ function estimateTokens(text) {
   return Math.ceil(text.length / 4);
 }
 
-// Helper untuk compress array of strings (system prompts)
+// Helper untuk compress array of strings (system prompts) - legacy mode
 function compressStrings(arr, config) {
   if (!arr || !Array.isArray(arr)) return arr;
   return arr.map(str => {
     if (typeof str !== 'string') return str;
-    const pruned = pruneContext(str);
-    return compressPrompt(pruned, { level: config.compressionLevel });
+    const pruned = legacyPrune(str);
+    return legacyCompress(pruned, { level: config.compressionLevel });
   });
 }
 
-// Helper untuk compress parts dalam sebuah message
-function compressParts(parts, config) {
+// Helper untuk compress parts dalam sebuah message (legacy mode)
+function compressPartsLegacy(parts, config) {
   if (!parts || !Array.isArray(parts)) return parts;
   
   return parts.map(part => {
     if (!part) return part;
     
     if (typeof part.text === 'string') {
-      const pruned = pruneContext(part.text);
-      const compressed = compressPrompt(pruned, { level: config.compressionLevel });
+      const pruned = legacyPrune(part.text);
+      const compressed = legacyCompress(pruned, { level: config.compressionLevel });
       return { ...part, text: compressed };
     }
     
     if (typeof part === 'string') {
-      const pruned = pruneContext(part);
-      return compressPrompt(pruned, { level: config.compressionLevel });
+      const pruned = legacyPrune(part);
+      return legacyCompress(pruned, { level: config.compressionLevel });
+    }
+    
+    return part;
+  });
+}
+
+// Helper untuk compress parts menggunakan pipeline baru
+function compressPartsPipeline(parts, pipeline) {
+  if (!parts || !Array.isArray(parts)) return parts;
+  
+  return parts.map(part => {
+    if (!part) return part;
+    
+    if (typeof part.text === 'string') {
+      const chunks = pipeline.run(part.text);
+      const compressed = reconstructText(chunks);
+      return { ...part, text: compressed };
+    }
+    
+    if (typeof part === 'string') {
+      const chunks = pipeline.run(part);
+      return reconstructText(chunks);
     }
     
     return part;
@@ -56,9 +82,17 @@ function extractText(parts) {
   }).join('');
 }
 
-// Plugin utama Pangkas v2
+// Plugin utama Pangkas v3
 export const PangkasPlugin = async (ctx) => {
   const config = getPangkasConfig();
+  
+  // Auto-start dashboard if enabled (default: true)
+  if (config.enableDashboard !== false) {
+    startDashboard(config.dashboardPort || 8765);
+  }
+  
+  // Create pipeline if v3 mode is enabled
+  const pipeline = config.usePipeline ? createPipeline(config) : null;
 
   return {
     // Hook 1: Transform system prompts
@@ -70,7 +104,17 @@ export const PangkasPlugin = async (ctx) => {
       const originalText = output.system.join('\n');
       const originalTokens = estimateTokens(originalText);
       
-      output.system = compressStrings(output.system, config);
+      if (pipeline) {
+        // v3: use pipeline
+        output.system = output.system.map(str => {
+          if (typeof str !== 'string') return str;
+          const chunks = pipeline.run(str);
+          return reconstructText(chunks);
+        });
+      } else {
+        // Legacy mode
+        output.system = compressStrings(output.system, config);
+      }
       
       const compressedText = output.system.join('\n');
       const compressedTokens = estimateTokens(compressedText);
@@ -103,7 +147,7 @@ export const PangkasPlugin = async (ctx) => {
       const originalCount = messages.length;
       if (config.maxHistoryMessages > 0 && messages.length > config.maxHistoryMessages) {
         if (config.useSummarization) {
-          messages = manageHistory(messages, config.maxHistoryMessages);
+          messages = legacyManageHistory(messages, config.maxHistoryMessages);
         } else {
           // Fallback: brute truncate jika summarization dimatikan
           const keepCount = config.maxHistoryMessages;
@@ -135,7 +179,11 @@ export const PangkasPlugin = async (ctx) => {
         
         // Compress parts
         if (msg.parts && Array.isArray(msg.parts)) {
-          msg.parts = compressParts(msg.parts, config);
+          if (pipeline) {
+            msg.parts = compressPartsPipeline(msg.parts, pipeline);
+          } else {
+            msg.parts = compressPartsLegacy(msg.parts, config);
+          }
         }
         
         // Hitung compressed tokens
@@ -166,7 +214,11 @@ export const PangkasPlugin = async (ctx) => {
       
       const originalParts = extractText(output.parts);
       
-      output.parts = compressParts(output.parts, config);
+      if (pipeline) {
+        output.parts = compressPartsPipeline(output.parts, pipeline);
+      } else {
+        output.parts = compressPartsLegacy(output.parts, config);
+      }
       
       const compressedParts = extractText(output.parts);
       
