@@ -2,12 +2,14 @@
 // Prinsip: Ringkas tapi bermakna (seperti Superpowers)
 // Tidak menghapus context secara brutal, tapi summarize dan compress smart
 
-import { pruneContext } from "./pruner.js";
-import { compressPrompt } from "./compressor.js";
-import { manageHistory } from "./history-manager.js";
 import { logStats } from "./logger.js";
 import { getPangkasConfig } from "./config.js";
 import { createPipeline, reconstructText } from "./pipeline/index.js";
+
+// Legacy imports (for backward compatibility when usePipeline: false)
+import { pruneContext as legacyPrune } from "./legacy/pruner.js";
+import { compressPrompt as legacyCompress } from "./legacy/compressor.js";
+import { manageHistory as legacyManageHistory } from "./legacy/history-manager.js";
 
 // Estimasi token sederhana (1 token ~ 4 karakter rata-rata)
 function estimateTokens(text) {
@@ -15,13 +17,13 @@ function estimateTokens(text) {
   return Math.ceil(text.length / 4);
 }
 
-// Helper untuk compress array of strings (system prompts)
+// Helper untuk compress array of strings (system prompts) - legacy mode
 function compressStrings(arr, config) {
   if (!arr || !Array.isArray(arr)) return arr;
   return arr.map(str => {
     if (typeof str !== 'string') return str;
-    const pruned = pruneContext(str);
-    return compressPrompt(pruned, { level: config.compressionLevel });
+    const pruned = legacyPrune(str);
+    return legacyCompress(pruned, { level: config.compressionLevel });
   });
 }
 
@@ -33,14 +35,14 @@ function compressPartsLegacy(parts, config) {
     if (!part) return part;
     
     if (typeof part.text === 'string') {
-      const pruned = pruneContext(part.text);
-      const compressed = compressPrompt(pruned, { level: config.compressionLevel });
+      const pruned = legacyPrune(part.text);
+      const compressed = legacyCompress(pruned, { level: config.compressionLevel });
       return { ...part, text: compressed };
     }
     
     if (typeof part === 'string') {
-      const pruned = pruneContext(part);
-      return compressPrompt(pruned, { level: config.compressionLevel });
+      const pruned = legacyPrune(part);
+      return legacyCompress(pruned, { level: config.compressionLevel });
     }
     
     return part;
@@ -139,7 +141,7 @@ export const PangkasPlugin = async (ctx) => {
       const originalCount = messages.length;
       if (config.maxHistoryMessages > 0 && messages.length > config.maxHistoryMessages) {
         if (config.useSummarization) {
-          messages = manageHistory(messages, config.maxHistoryMessages);
+          messages = legacyManageHistory(messages, config.maxHistoryMessages);
         } else {
           // Fallback: brute truncate jika summarization dimatikan
           const keepCount = config.maxHistoryMessages;
