@@ -11,4 +11,12 @@ describe('chunker', () => {
     assert.strictEqual(chunks[1].type, 'string_literal');
     assert.strictEqual(chunks[2].type, 'code');
   });
+
+  it('should handle escaped quotes inside string', () => {
+    const input = 'const x = "hello \\"world\\"";';
+    const chunks = parseChunks(input);
+    assert.strictEqual(chunks.length, 3);
+    assert.strictEqual(chunks[1].type, 'string_literal');
+    assert.ok(chunks[1].content.includes('world'));
+  });
 });
