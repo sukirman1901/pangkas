@@ -37,7 +37,19 @@ export function extractFacts(messages, existingFacts = []) {
   extracted.push(...extractPreferences(text));
   extracted.push(...extractQuestions(text));
   
-  return extracted;
+  // Deduplicate within same batch (high similarity = same fact)
+  const unique = [];
+  for (const fact of extracted) {
+    const isDuplicate = unique.some(existing => 
+      existing.type === fact.type && 
+      similarity(existing.content, fact.content) > 0.85
+    );
+    if (!isDuplicate) {
+      unique.push(fact);
+    }
+  }
+  
+  return unique;
 }
 
 function extractTextFromMessages(messages) {
