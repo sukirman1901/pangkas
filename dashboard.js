@@ -404,6 +404,56 @@ body {
   color: var(--text-subtle);
 }
 
+.form-value {
+  padding: 16px 20px 20px 64px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.form-value:last-child {
+  border-bottom: none;
+}
+
+/* Memory list */
+.mem-list {
+  padding: 12px 20px 16px 64px;
+}
+
+.mem-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.mem-item:last-child {
+  border-bottom: none;
+}
+
+.mem-item svg {
+  color: var(--success);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.mem-item.file-item {
+  align-items: center;
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.mem-item.file-item svg {
+  color: var(--text-muted);
+  margin-top: 0;
+}
+
 /* Toggle */
 .toggle {
   position: relative;
@@ -904,29 +954,44 @@ body {
     </div>
 
     <div class="card">
-      <div class="card-header">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted)"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-        <h3>Current Focus</h3>
+      <div class="form-item">
+        <div class="form-label">
+          <div class="form-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          </div>
+          <div class="form-text">
+            <h4>Current Focus</h4>
+            <p>Active session context</p>
+          </div>
+        </div>
       </div>
-      <div style="padding: 20px;">
-        <p style="font-size: 14px; line-height: 1.6; color: var(--text-muted);" id="mem-focus">No session memory available.</p>
+      <div class="form-value" id="mem-focus">No session memory available.</div>
+
+      <div class="form-item">
+        <div class="form-label">
+          <div class="form-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </div>
+          <div class="form-text">
+            <h4>Session Summary</h4>
+            <p>Overview of previous session</p>
+          </div>
+        </div>
       </div>
+      <div class="form-value" id="mem-summary">No session summary available.</div>
     </div>
 
     <div class="card">
-      <div class="card-header">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        <h3>Session Summary</h3>
-      </div>
-      <div style="padding: 20px;">
-        <p style="font-size: 14px; line-height: 1.6; color: var(--text-muted);" id="mem-summary">No session summary available.</p>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted)"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        <h3>Key Decisions</h3>
+      <div class="form-item">
+        <div class="form-label">
+          <div class="form-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="form-text">
+            <h4>Key Decisions</h4>
+            <p>Important choices recorded</p>
+          </div>
+        </div>
       </div>
       <div id="mem-decisions-list">
         <div class="empty-state">
@@ -936,9 +1001,16 @@ body {
     </div>
 
     <div class="card">
-      <div class="card-header">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted)"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
-        <h3>Files Being Modified</h3>
+      <div class="form-item">
+        <div class="form-label">
+          <div class="form-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+          </div>
+          <div class="form-text">
+            <h4>Files Being Modified</h4>
+            <p>Tracked file changes</p>
+          </div>
+        </div>
       </div>
       <div id="mem-files-list">
         <div class="empty-state">
@@ -1141,9 +1213,9 @@ async function loadMemory() {
     const decisionsEl = document.getElementById('mem-decisions-list');
     const decisions = data.keyDecisions || [];
     if (decisions.length > 0) {
-      let html = '<div style="padding: 16px 20px;">';
+      let html = '<div class="mem-list">';
       for (const d of decisions) {
-        html += '<div style="display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border-light);"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--success); flex-shrink:0; margin-top:2px;"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size: 14px; line-height: 1.5; color: var(--text);">' + escapeHtml(d) + '</span></div>';
+        html += '<div class="mem-item"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span>' + escapeHtml(d) + '</span></div>';
       }
       html += '</div>';
       decisionsEl.innerHTML = html;
@@ -1153,9 +1225,9 @@ async function loadMemory() {
     const filesEl = document.getElementById('mem-files-list');
     const files = data.filesModified || [];
     if (files.length > 0) {
-      let html = '<div style="padding: 16px 20px;">';
+      let html = '<div class="mem-list">';
       for (const f of files) {
-        html += '<div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; font-family: monospace; font-size: 13px; color: var(--text-muted);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>' + escapeHtml(f) + '</div>';
+        html += '<div class="mem-item file-item"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg><span>' + escapeHtml(f) + '</span></div>';
       }
       html += '</div>';
       filesEl.innerHTML = html;
