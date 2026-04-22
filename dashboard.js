@@ -1169,26 +1169,12 @@ async function loadMemory() {
     for (const type of typeOrder) {
       if (!grouped[type]) continue;
       const icon = getTypeIcon(type);
-      html += `
-        <div class="card">
-          <div class="form-item">
-            <div class="form-label">
-              <div class="form-icon">${icon}</div>
-              <div class="form-text">
-                <h4>${type.toUpperCase()} (${grouped[type].length})</h4>
-              </div>
-            </div>
-          </div>
-          <div class="mem-list">
-            ${grouped[type].map(f => `
-              <div class="mem-item">
-                <span>${escapeHtml(f.content)}</span>
-                <span style="color:var(--text-subtle);font-size:12px">${f.confidence > 0.8 ? '★' : ''}</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
+      const count = grouped[type].length;
+      const items = grouped[type].map(function(f) {
+        const star = f.confidence > 0.8 ? '★' : '';
+        return '<div class="mem-item"><span>' + escapeHtml(f.content) + '</span><span style="color:var(--text-subtle);font-size:12px">' + star + '</span></div>';
+      }).join('');
+      html += '<div class="card"><div class="form-item"><div class="form-label"><div class="form-icon">' + icon + '</div><div class="form-text"><h4>' + type.toUpperCase() + ' (' + count + ')</h4></div></div></div><div class="mem-list">' + items + '</div></div>';
     }
 
     document.getElementById('mem-facts-container').innerHTML = html;
