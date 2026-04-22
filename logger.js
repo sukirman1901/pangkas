@@ -13,16 +13,13 @@ if (!fs.existsSync(logDir)) {
 
 /**
  * Logger statistik token, cost, dan aktivitas plugin.
- * Menyimpan ke console dan file log.
+ * Menyimpan ke file log saja (tidak ke console/terminal).
  * @param {object} stats - statistik yang dicatat
  */
 export function logStats(stats) {
   const line = `[${new Date().toISOString()}] ${JSON.stringify(stats)}`;
-  
-  // 1. Tampilkan di console (muncul di terminal)
-  console.log("[Pangkas]", line);
-  
-  // 2. Simpan ke file (append)
+
+  // Simpan ke file log (tidak ditampilkan di console agar terminal bersih)
   try {
     fs.appendFileSync(LOG_FILE, line + "\n");
   } catch (err) {

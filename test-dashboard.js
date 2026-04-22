@@ -1,9 +1,6 @@
 import { startDashboard } from './dashboard.js';
 
-console.log('=== Pangkas Dashboard Debug ===\n');
-
 // Test 1: Check if port is available
-console.log('1. Testing port availability...');
 startDashboard(8765);
 
 // Test 2: Wait a bit then make a request
@@ -11,14 +8,14 @@ setTimeout(async () => {
   try {
     const response = await fetch('http://localhost:8765/api/stats');
     const data = await response.json();
-    console.log('\n2. Dashboard is accessible!');
-    console.log('   Stats:', JSON.stringify(data, null, 2));
+    process.stdout.write('\n2. Dashboard is accessible!\n');
+    process.stdout.write('   Stats: ' + JSON.stringify(data, null, 2) + '\n');
   } catch (e) {
-    console.log('\n2. ERROR: Cannot connect to dashboard');
-    console.log('   Error:', e.message);
+    process.stdout.write('\n2. ERROR: Cannot connect to dashboard\n');
+    process.stdout.write('   Error: ' + e.message + '\n');
   }
 }, 1000);
 
 // Keep running
-console.log('\n3. Dashboard should be running at http://localhost:8765');
-console.log('   Press Ctrl+C to stop\n');
+process.stdout.write('\n3. Dashboard should be running at http://localhost:8765\n');
+process.stdout.write('   Press Ctrl+C to stop\n');

@@ -5,8 +5,8 @@ import { deduplicateChunks } from './dedup.js';
 
 // Simple logger that doesn't depend on external modules
 function logStats(stats) {
-  const line = `[${new Date().toISOString()}] ${JSON.stringify(stats)}`;
-  console.log('[Pangkas]', line);
+  // Log hanya ke file lewat logger.js utama, tidak ke console terminal
+  // Silakan impor logStats dari ../logger.js jika ingin menyimpan ke file
 }
 
 export function createPipeline(config) {

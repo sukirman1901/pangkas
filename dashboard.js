@@ -1036,7 +1036,6 @@ export function startDashboard(port = 8765) {
     // A closed server has no address
     try {
       if (server.listening) {
-        console.log(`[Pangkas] Dashboard already running on port ${port}`);
         return;
       }
     } catch {
@@ -1103,16 +1102,9 @@ export function startDashboard(port = 8765) {
     res.end('Not Found');
   });
 
-  server.listen(port, () => {
-    console.log(`[Pangkas] Dashboard: http://localhost:${port}`);
-  });
+  server.listen(port);
 
   server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      console.log(`[Pangkas] Dashboard port ${port} already in use`);
-    } else {
-      console.log(`[Pangkas] Dashboard error on port ${port}:`, err.message);
-    }
     // Reset server so we can try again later
     server = null;
   });
