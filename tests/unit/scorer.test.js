@@ -20,4 +20,16 @@ describe('scorer', () => {
     const scored = scoreChunks(chunks);
     assert.ok(scored[0].score >= 0.5 && scored[0].score <= 0.7);
   });
+
+  it('should detect TODO comment as important', () => {
+    const chunks = [{ type: 'comment', content: '// TODO: fix this bug', metadata: {} }];
+    const scored = scoreChunks(chunks);
+    assert.ok(scored[0].score >= 0.8);
+  });
+
+  it('should detect greeting comment as noise', () => {
+    const chunks = [{ type: 'comment', content: '// hello world', metadata: {} }];
+    const scored = scoreChunks(chunks);
+    assert.ok(scored[0].score <= 0.2);
+  });
 });
