@@ -41,6 +41,42 @@ Pangkas v3 uses a smarter new pipeline:
 
 ---
 
+## Session Memory (New)
+
+Pangkas can remember the context of your previous session so you don't lose track after restarting OpenCode.
+
+### How It Works
+
+1. After each assistant response, Pangkas saves a short summary to `.pangkas/memory.json` inside your project root.
+2. The `.pangkas/` folder is automatically added to `.gitignore` so it never leaks to GitHub.
+3. When you reopen the same project, Pangkas injects the summary into the first system message.
+4. All persisted text is sanitized to remove API keys, tokens, and passwords.
+
+### Configuration
+
+| File Key | Environment Variable | Default | Description |
+|----------|---------------------|---------|-------------|
+| `enableSessionMemory` | `PANGKAS_SESSION_MEMORY` | `true` | Enable session memory |
+| `maxMemoryInjectLength` | `PANGKAS_MEMORY_LENGTH` | `500` | Max characters injected into prompt |
+| `memoryInjectIndicator` | — | `true` | Show "[Loaded context...]" indicator |
+
+### Privacy & Security
+
+- Memory is stored **locally** only (no cloud).
+- Secrets are redacted before saving (API keys, Bearer tokens, JWTs, passwords).
+- The `.pangkas/` directory is auto-ignored by Git.
+- You can delete `.pangkas/` at any time to reset memory.
+
+### Disabling Memory
+
+```jsonc
+{
+  "enableSessionMemory": false
+}
+```
+
+---
+
 ## Installation
 
 1. **Clone or copy** this plugin to the OpenCode plugins folder:
@@ -111,6 +147,9 @@ Pangkas can be configured via **file** (`pangkas.jsonc`) or **environment variab
 | `usePipeline` | — | `true` | Use v3 pipeline (chunker→scorer→compressor→dedup) |
 | `dedupThreshold` | — | `0.85` | Jaccard similarity threshold for deduplication (0.0-1.0) |
 | `maxChunksPerMessage` | — | `500` | Safety limit for chunks per message |
+| `enableSessionMemory` | `PANGKAS_SESSION_MEMORY` | `true` | Enable session memory across restarts |
+| `maxMemoryInjectLength` | `PANGKAS_MEMORY_LENGTH` | `500` | Max characters of memory injected into prompt |
+| `memoryInjectIndicator` | — | `true` | Show "[Loaded context...]" indicator |
 
 **Environment variables** will override values in the config file.
 
