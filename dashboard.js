@@ -7,6 +7,29 @@ const LOG_FILE = path.join(os.homedir(), '.config/opencode/pangkas.log');
 const CONFIG_FILE = path.join(process.cwd(), 'pangkas.jsonc');
 let server = null;
 
+function readMemoryData() {
+  try {
+    const projectRoot = process.cwd();
+    const memoryPath = path.join(projectRoot, '.pangkas', 'memory.json');
+    if (!fs.existsSync(memoryPath)) {
+      return { hasMemory: false };
+    }
+    const raw = fs.readFileSync(memoryPath, 'utf8');
+    const data = JSON.parse(raw);
+    return {
+      hasMemory: true,
+      lastUpdated: data.lastUpdated || null,
+      recentFocus: data.recentFocus || '',
+      sessionSummary: data.sessionSummary || '',
+      keyDecisions: data.keyDecisions || [],
+      filesModified: data.filesModified || [],
+      projectRoot: data.projectRoot || projectRoot,
+    };
+  } catch (e) {
+    return { hasMemory: false, error: e.message };
+  }
+}
+
 function readLogs() {
   try {
     if (!fs.existsSync(LOG_FILE)) return [];
@@ -650,6 +673,10 @@ body {
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
       <span>Pipeline</span>
     </button>
+    <button class="nav-tab" data-page="memory" onclick="showPage('memory')">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a5 5 0 0 0-5 5v2a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2V7a5 5 0 0 0-5-5Z"/><circle cx="12" cy="15" r="1"/><path d="M8 11V7a4 4 0 1 1 8 0v4"/></svg>
+      <span>Memory</span>
+    </button>
     <button class="nav-tab" data-page="events" onclick="showPage('events')">
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
       <span>Events</span>
@@ -852,6 +879,75 @@ body {
     </div>
   </div>
 
+  <!-- Memory Page -->
+  <div class="page" id="page-memory">
+    <h1 class="page-title">Session Memory</h1>
+    <p class="page-subtitle">Persistent context across sessions</p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Status</div>
+        <div class="stat-value" id="mem-status">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Last Updated</div>
+        <div class="stat-value" id="mem-updated">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Key Decisions</div>
+        <div class="stat-value" id="mem-decisions">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Files Modified</div>
+        <div class="stat-value" id="mem-files">-</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted)"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <h3>Current Focus</h3>
+      </div>
+      <div style="padding: 20px;">
+        <p style="font-size: 14px; line-height: 1.6; color: var(--text-muted);" id="mem-focus">No session memory available.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <h3>Session Summary</h3>
+      </div>
+      <div style="padding: 20px;">
+        <p style="font-size: 14px; line-height: 1.6; color: var(--text-muted);" id="mem-summary">No session summary available.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted)"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <h3>Key Decisions</h3>
+      </div>
+      <div id="mem-decisions-list">
+        <div class="empty-state">
+          <p>No key decisions recorded yet.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted)"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <h3>Files Being Modified</h3>
+      </div>
+      <div id="mem-files-list">
+        <div class="empty-state">
+          <p>No files tracked yet.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Events Page -->
   <div class="page" id="page-events">
     <h1 class="page-title">Events</h1>
@@ -1020,10 +1116,80 @@ async function loadStats() {
   }
 }
 
+async function loadMemory() {
+  try {
+    const res = await fetch('/api/memory');
+    const data = await res.json();
+
+    if (!data.hasMemory) {
+      document.getElementById('mem-status').textContent = 'Inactive';
+      document.getElementById('mem-status').className = 'stat-value';
+      document.getElementById('mem-updated').textContent = 'Never';
+      return;
+    }
+
+    document.getElementById('mem-status').textContent = 'Active';
+    document.getElementById('mem-status').className = 'stat-value success';
+    document.getElementById('mem-updated').textContent = formatRelativeTime(data.lastUpdated);
+    document.getElementById('mem-decisions').textContent = (data.keyDecisions || []).length;
+    document.getElementById('mem-files').textContent = (data.filesModified || []).length;
+
+    document.getElementById('mem-focus').textContent = data.recentFocus || 'No focus recorded.';
+    document.getElementById('mem-summary').textContent = data.sessionSummary || 'No summary recorded.';
+
+    // Key decisions
+    const decisionsEl = document.getElementById('mem-decisions-list');
+    const decisions = data.keyDecisions || [];
+    if (decisions.length > 0) {
+      let html = '<div style="padding: 16px 20px;">';
+      for (const d of decisions) {
+        html += '<div style="display: flex; align-items: flex-start; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border-light);"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--success); flex-shrink:0; margin-top:2px;"><polyline points="20 6 9 17 4 12"/></svg><span style="font-size: 14px; line-height: 1.5; color: var(--text);">' + escapeHtml(d) + '</span></div>';
+      }
+      html += '</div>';
+      decisionsEl.innerHTML = html;
+    }
+
+    // Files modified
+    const filesEl = document.getElementById('mem-files-list');
+    const files = data.filesModified || [];
+    if (files.length > 0) {
+      let html = '<div style="padding: 16px 20px;">';
+      for (const f of files) {
+        html += '<div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; font-family: monospace; font-size: 13px; color: var(--text-muted);"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>' + escapeHtml(f) + '</div>';
+      }
+      html += '</div>';
+      filesEl.innerHTML = html;
+    }
+  } catch (e) {
+    console.error('Failed to load memory:', e);
+  }
+}
+
+function formatRelativeTime(isoString) {
+  if (!isoString) return 'Never';
+  const date = new Date(isoString);
+  const now = new Date();
+  const diff = Math.floor((now - date) / 1000);
+
+  if (diff < 60) return 'Just now';
+  if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' hours ago';
+  if (diff < 604800) return Math.floor(diff / 86400) + ' days ago';
+  return date.toLocaleDateString();
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 loadConfig();
 bindInputs();
 loadStats();
+loadMemory();
 setInterval(loadStats, 2000);
+setInterval(loadMemory, 5000);
 </script>
 
 </body>
@@ -1089,6 +1255,13 @@ export function startDashboard(port = 8765) {
       const stats = calculateStats(logs, currentConfig);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(stats));
+      return;
+    }
+
+    if (req.url === '/api/memory') {
+      const memory = readMemoryData();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(memory));
       return;
     }
 
