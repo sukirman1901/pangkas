@@ -6,6 +6,9 @@ import { logStats } from "./logger.js";
 import { getPangkasConfig } from "./config.js";
 import { createPipeline, reconstructText } from "./pipeline/index.js";
 import { startDashboard } from "./dashboard.js";
+import { findProjectRoot } from './project-root.js';
+import { loadMemory, updateMemory } from './memory.js';
+import { sanitizeObject } from './sanitize.js';
 
 // Legacy imports (for backward compatibility when usePipeline: false)
 import { pruneContext as legacyPrune } from "./legacy/pruner.js";
@@ -82,9 +85,57 @@ function extractText(parts) {
   }).join('');
 }
 
+function summarizeSession(messages) {
+  if (!messages || messages.length === 0) return '';
+  const lastUser = messages.slice().reverse().find(m => m.role === 'user');
+  const text = lastUser && lastUser.parts
+    ? lastUser.parts.map(p => (typeof p === 'string' ? p : p.text || '')).join(' ')
+    : '';
+  return text.slice(0, 300);
+}
+
+function persistMemory(projectRoot, ctx) {
+  const summary = summarizeSession(ctx.messages);
+  if (!summary) return;
+  const patch = sanitizeObject({
+    sessionSummary: summary,
+    recentFocus: summary,
+    filesModified: [],
+  });
+  updateMemory(projectRoot, patch);
+}
+
 // Plugin utama Pangkas v3
 export const PangkasPlugin = async (ctx) => {
   const config = getPangkasConfig();
+  
+  // Determine project root for memory scoping
+  const projectRoot = findProjectRoot();
+  
+  // Load and inject session memory if enabled
+  if (config.enableSessionMemory !== false) {
+    const memory = loadMemory(projectRoot);
+    if (memory && memory.sessionSummary && ctx.messages && Array.isArray(ctx.messages)) {
+      const rawSummary = memory.sessionSummary;
+      const clamped = rawSummary.length > config.maxMemoryInjectLength
+        ? rawSummary.slice(0, config.maxMemoryInjectLength) + '...'
+        : rawSummary;
+      const indicator = config.memoryInjectIndicator
+        ? '[Loaded context from previous session]\n'
+        : '';
+      const contextMsg = {
+        role: 'system',
+        content: `${indicator}${clamped}`,
+        _pangkas_injected_memory: true,
+      };
+      const firstSystemIdx = ctx.messages.findIndex(m => m.role === 'system');
+      if (firstSystemIdx >= 0) {
+        ctx.messages.splice(firstSystemIdx + 1, 0, contextMsg);
+      } else {
+        ctx.messages.unshift(contextMsg);
+      }
+    }
+  }
   
   // Auto-start dashboard if enabled (default: true)
   if (config.enableDashboard !== false) {
@@ -199,6 +250,14 @@ export const PangkasPlugin = async (ctx) => {
       });
       
       output.messages = messages;
+      
+      // Persist session memory if assistant message exists
+      if (config.enableSessionMemory !== false) {
+        const lastMsg = messages[messages.length - 1];
+        if (lastMsg && lastMsg.role === 'assistant') {
+          persistMemory(projectRoot, ctx);
+        }
+      }
       
       const saved = totalOriginalTokens - totalCompressedTokens;
       if (saved > 0 && config.enableLogging) {

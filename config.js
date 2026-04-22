@@ -55,6 +55,14 @@ export function getPangkasConfig() {
     // true = aktifkan mode benchmark (hitung token savings)
     enableBenchmark: false,
     
+    // --- Session Memory ---
+    // true = simpan/load session memory antar restart
+    enableSessionMemory: true,
+    // Maksimal karakter summary yang di-inject ke prompt
+    maxMemoryInjectLength: 500,
+    // true = tampilkan indicator [Loaded context...]
+    memoryInjectIndicator: true,
+
     // --- Dashboard ---
     // true = auto-start web dashboard di localhost
     enableDashboard: true,
@@ -80,6 +88,8 @@ export function getPangkasConfig() {
     enableDashboard: process.env.PANGKAS_DASHBOARD === 'false' ? false : undefined,
     dashboardPort: process.env.PANGKAS_DASHBOARD_PORT ? Number(process.env.PANGKAS_DASHBOARD_PORT) : undefined,
     contextLimit: process.env.PANGKAS_CONTEXT_LIMIT ? Number(process.env.PANGKAS_CONTEXT_LIMIT) : undefined,
+    enableSessionMemory: process.env.PANGKAS_SESSION_MEMORY === 'false' ? false : undefined,
+    maxMemoryInjectLength: process.env.PANGKAS_MEMORY_LENGTH ? Number(process.env.PANGKAS_MEMORY_LENGTH) : undefined,
   };
   
   // 2. Cek file config di beberapa lokasi
