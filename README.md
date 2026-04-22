@@ -1,68 +1,68 @@
 # Pangkas
 
-Plugin untuk **menghemat token AI pada OpenCode** — *ringkas tapi bermakna*.
+Plugin to **save AI tokens in OpenCode** — *concise but meaningful*.
 
-Pangkas bekerja di balik layar untuk mengurangi jumlah token yang dikirim ke model AI, tanpa menghilangkan konteks penting. Lebih hemat biaya, lebih cepat, tanpa mengorbankan kualitas respons.
+Pangkas works behind the scenes to reduce the number of tokens sent to the AI model, without losing important context. Lower costs, faster responses, without sacrificing response quality.
 
 ---
 
-## Apa itu Pangkas?
+## What is Pangkas?
 
-Saat chat dengan AI di OpenCode, semua pesan, system prompt, dan konteks dikirim ke model dalam bentuk token. Semakin panjang konteks, semakin besar biaya dan waktu responsnya.
+When chatting with AI in OpenCode, all messages, system prompts, and context are sent to the model as tokens. The longer the context, the higher the cost and response time.
 
-**Pangkas** menyelesaikan masalah ini dengan tiga strategi utama:
+**Pangkas** solves this with three main strategies:
 
-| Strategi | Deskripsi | Hasil |
-|----------|-----------|-------|
-| **Semantic Pruning** | Hapus komentar "noise" (komentar kosong, separator, sapaan), tapi **pertahankan** komentar penting seperti `TODO`, `FIXME`, `@param`, `eslint-disable`, dsb. | Kode tetap readable dan informatif |
-| **Smart Compression** | Kompres whitespace secara bertahap sesuai level yang dipilih. Level konservatif hanya hapus trailing whitespace; level agresif bisa minimalis lebih jauh. | Mengurangi token tanpa merusak struktur |
-| **Smart History** | Bukan brute truncate! Pesan lama yang tidak penting di-*summarize*, pesan dengan instruksi penting tetap dipertahankan. Pesan pertama dan terakhir selalu aman. | Konteks panjang tetap relevan |
-| **v3 Pipeline** | Pipeline *context-aware* dengan chunker → scorer → compressor → dedup. Instruksi penting tidak di-compress, string literal aman, redundansi antar pesan dihapus. | Hemat token 15%+ tanpa kehilangan konteks |
+| Strategy | Description | Result |
+|----------|-------------|--------|
+| **Semantic Pruning** | Removes "noise" comments (empty comments, separators, greetings), but **preserves** important comments like `TODO`, `FIXME`, `@param`, `eslint-disable`, etc. | Code stays readable and informative |
+| **Smart Compression** | Compresses whitespace gradually based on the chosen level. Conservative level only removes trailing whitespace; aggressive level can minimize further. | Reduces tokens without breaking structure |
+| **Smart History** | No brute truncate! Older unimportant messages are *summarized*, messages with important instructions are preserved. First and last messages are always safe. | Long context stays relevant |
+| **v3 Pipeline** | *Context-aware* pipeline with chunker → scorer → compressor → dedup. Important instructions are not compressed, string literals are safe, redundancy across messages is removed. | Save 15%+ tokens without losing context |
 
 ---
 
 ## v3 Pipeline (Context-Aware)
 
-Pangkas v3 menggunakan pipeline baru yang lebih pintar:
+Pangkas v3 uses a smarter new pipeline:
 
 ### Stages
 
-1. **Chunker** — Memahami struktur teks (string literal, komentar, instruksi, separator)
-2. **Scorer** — Memberi skor pentingnya setiap chunk (0.0 = noise, 1.0 = critical)
-3. **Compressor** — Kompresi adaptif berdasarkan skor (penting = tidak di-compress, noise = agresif)
-4. **Dedup** — Deteksi dan hapus redundansi antar messages
+1. **Chunker** — Understands text structure (string literals, comments, instructions, separators)
+2. **Scorer** — Assigns importance score to each chunk (0.0 = noise, 1.0 = critical)
+3. **Compressor** — Adaptive compression based on score (important = not compressed, noise = aggressive)
+4. **Dedup** — Detects and removes redundancy across messages
 
-### Keunggulan v3
+### v3 Advantages
 
-- **Smart**: Instruksi penting (TODO, FIXME, IMPORTANT) tidak di-compress
-- **Aman**: String literal tidak di-rusak oleh compression
-- **Efisien**: Hemat token 15%+ tanpa kehilangan konteks penting
-- **Backward Compatible**: Bisa fallback ke v2 dengan `usePipeline: false`
+- **Smart**: Important instructions (TODO, FIXME, IMPORTANT) are not compressed
+- **Safe**: String literals are not damaged by compression
+- **Efficient**: Save 15%+ tokens without losing important context
+- **Backward Compatible**: Can fallback to v2 with `usePipeline: false`
 
 ---
 
-## Instalasi
+## Installation
 
-1. **Clone atau copy** plugin ini ke folder plugins OpenCode:
+1. **Clone or copy** this plugin to the OpenCode plugins folder:
 
    ```bash
-   # Clone ke folder plugins OpenCode
+   # Clone into OpenCode plugins folder
    git clone https://github.com/sukirman1901/pangkas.git ~/.config/opencode/plugins/pangkas
    ```
 
-2. **Buat file wrapper** `pangkas.js` di folder plugins (agar OpenCode bisa load plugin):
+2. **Create a wrapper file** `pangkas.js` in the plugins folder (so OpenCode can load the plugin):
 
    ```bash
    cd ~/.config/opencode/plugins/
    ln -s pangkas/pangkas.js pangkas.js
    ```
 
-   Atau copy file wrapper:
+   Or copy the wrapper file:
    ```bash
    cp ~/.config/opencode/plugins/pangkas/pangkas.js ~/.config/opencode/plugins/pangkas.js
    ```
 
-3. **Daftarkan plugin** di konfigurasi OpenCode (`~/.config/opencode/config.json`):
+3. **Register the plugin** in OpenCode config (`~/.config/opencode/config.json`):
 
    ```json
    {
@@ -70,56 +70,56 @@ Pangkas v3 menggunakan pipeline baru yang lebih pintar:
    }
    ```
 
-4. **(Opsional) Buat konfigurasi** `pangkas.jsonc` di root project:
+4. **(Optional) Create config** `pangkas.jsonc` in the project root:
 
    ```jsonc
    {
-     // Level kompresi: 0.0 (tidak ada) sampai 1.0 (maksimal)
+     // Compression level: 0.0 (none) to 1.0 (maximum)
      "compressionLevel": 0.3,
 
-     // Maksimal pesan dalam history
+     // Maximum messages in history
      "maxHistoryMessages": 30,
 
-     // Gunakan summarization untuk pesan lama
+     // Use summarization for old messages
      "useSummarization": true,
 
-     // Logging statistik token
+     // Token statistics logging
      "enableLogging": true,
 
      // v3 Pipeline
-     "usePipeline": true,         // aktifkan pipeline baru
-     "dedupThreshold": 0.85,      // threshold deduplication
+     "usePipeline": true,         // enable new pipeline
+     "dedupThreshold": 0.85,      // deduplication threshold
      "maxChunksPerMessage": 500   // safety limit
    }
    ```
 
 ---
 
-## Konfigurasi
+## Configuration
 
-Pangkas bisa dikonfigurasi melalui **file** (`pangkas.jsonc`) atau **environment variable**:
+Pangkas can be configured via **file** (`pangkas.jsonc`) or **environment variable**:
 
-| File Key | Environment Variable | Default | Keterangan |
-|----------|---------------------|---------|------------|
-| `compressionLevel` | `PANGKAS_COMPRESSION` | `0.3` | Level kompresi (0.0 - 1.0) |
-| `maxHistoryMessages` | `PANGKAS_MAX_HISTORY` | `30` | Batas jumlah pesan history |
-| `useSummarization` | `PANGKAS_SUMMARIZE` | `true` | Summarize pesan lama (bukan hapus) |
+| File Key | Environment Variable | Default | Description |
+|----------|---------------------|---------|-------------|
+| `compressionLevel` | `PANGKAS_COMPRESSION` | `0.3` | Compression level (0.0 - 1.0) |
+| `maxHistoryMessages` | `PANGKAS_MAX_HISTORY` | `30` | History message limit |
+| `useSummarization` | `PANGKAS_SUMMARIZE` | `true` | Summarize old messages (not delete) |
 | `pruneSystemPrompt` | `PANGKAS_PRUNE_SYSTEM` | `true` | Prune system prompt |
-| `pruneUserMessages` | `PANGKAS_PRUNE_USER` | `true` | Prune pesan user |
-| `pruneAssistantMessages` | `PANGKAS_PRUNE_ASSISTANT` | `true` | Prune pesan assistant |
-| `enableLogging` | `PANGKAS_LOG` | `true` | Log statistik ke console |
-| `usePipeline` | — | `true` | Gunakan pipeline v3 (chunker→scorer→compressor→dedup) |
-| `dedupThreshold` | — | `0.85` | Threshold Jaccard similarity untuk deduplication (0.0-1.0) |
-| `maxChunksPerMessage` | — | `500` | Safety limit jumlah chunk per pesan |
+| `pruneUserMessages` | `PANGKAS_PRUNE_USER` | `true` | Prune user messages |
+| `pruneAssistantMessages` | `PANGKAS_PRUNE_ASSISTANT` | `true` | Prune assistant messages |
+| `enableLogging` | `PANGKAS_LOG` | `true` | Log statistics to console |
+| `usePipeline` | — | `true` | Use v3 pipeline (chunker→scorer→compressor→dedup) |
+| `dedupThreshold` | — | `0.85` | Jaccard similarity threshold for deduplication (0.0-1.0) |
+| `maxChunksPerMessage` | — | `500` | Safety limit for chunks per message |
 
-**Environment variable** akan menimpa nilai di file config.
+**Environment variables** will override values in the config file.
 
-### Level Kompresi
+### Compression Levels
 
-- **0.0 - 0.3** (`conservative`): Hanya hapus trailing whitespace dan normalize newline. Aman untuk semua kasus.
-- **0.3 - 0.5** (`moderate`): Hapus spasi ganda, max 1 baris kosong. Masih sangat readable.
-- **0.5 - 0.7** (`aggressive`): Kompres whitespace di sekitar operator aman (`,`, `;`, `(`, `)`). Hati-hati untuk kode yang sangat bergantung pada formatting.
-- **0.7 - 1.0** (`very aggressive`): Minimal readability, hanya untuk emergency token saving.
+- **0.0 - 0.3** (`conservative`): Only remove trailing whitespace and normalize newlines. Safe for all cases.
+- **0.3 - 0.5** (`moderate`): Remove double spaces, max 1 empty line. Still very readable.
+- **0.5 - 0.7** (`aggressive`): Compress whitespace around safe operators (`,`, `;`, `(`, `)`). Be careful for code that highly depends on formatting.
+- **0.7 - 1.0** (`very aggressive`): Minimal readability, only for emergency token saving.
 
 ---
 
@@ -127,7 +127,7 @@ Pangkas bisa dikonfigurasi melalui **file** (`pangkas.jsonc`) atau **environment
 
 ```
 pangkas/
-├── pangkas.js            # Plugin wrapper (entry point untuk OpenCode)
+├── pangkas.js            # Plugin wrapper (entry point for OpenCode)
 ├── index.js              # Plugin entry point & hooks
 ├── config.js             # Configuration loader (env + file)
 ├── logger.js             # Statistics logging
@@ -151,18 +151,18 @@ pangkas/
 
 ---
 
-## Tips Penggunaan
+## Usage Tips
 
-| Skenario | Rekomendasi |
-|----------|-------------|
-| **Chat pendek** (< 10 pesan) | Gunakan default (`compressionLevel: 0.3`) |
-| **Code review besar** | Naikkan ke `compressionLevel: 0.5` |
-| **Conversation panjang** | Default sudah cukup (30 pesan + summarize otomatis) |
-| **Debugging kompleks** | Matikan `pruneUserMessages` jika perlu (`PANGKAS_PRUNE_USER=false`) |
-| **Hemat token maksimal** | Naikkan ke `0.7`, tapi perhatikan readability |
-| **Project dengan banyak JSDoc** | Biarkan `pruneSystemPrompt: true` — komentar penting akan tetap ada |
-| **v3 Pipeline bermasalah** | Fallback ke v2: `usePipeline: false` |
-| **Monitor penghematan** | Jalankan dashboard: `node start-dashboard.js` |
+| Scenario | Recommendation |
+|----------|----------------|
+| **Short chat** (< 10 messages) | Use default (`compressionLevel: 0.3`) |
+| **Large code review** | Increase to `compressionLevel: 0.5` |
+| **Long conversation** | Default is enough (30 messages + auto summarize) |
+| **Complex debugging** | Disable `pruneUserMessages` if needed (`PANGKAS_PRUNE_USER=false`) |
+| **Maximum token saving** | Increase to `0.7`, but watch readability |
+| **Project with lots of JSDoc** | Keep `pruneSystemPrompt: true` — important comments will stay |
+| **v3 Pipeline issues** | Fallback to v2: `usePipeline: false` |
+| **Monitor savings** | Run dashboard: `node start-dashboard.js` |
 
 ---
 
